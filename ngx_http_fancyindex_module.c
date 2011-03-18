@@ -136,7 +136,7 @@ static ngx_inline ngx_buf_t*
     ngx_force_inline;
 
 static ngx_inline ngx_buf_t*
-    make_footer_buf(ngx_http_request_t *r, ngx_http_fancyindex_loc_conf_t *alcf)
+    make_footer_buf(ngx_http_request_t *r)
     ngx_force_inline;
 
 
@@ -268,7 +268,7 @@ make_header_buf(ngx_http_request_t *r, ngx_http_fancyindex_loc_conf_t *alcf)
 	/*
 	 * If a custom CSS stylesheet is being used add it to the header!
 	 */
-	if (alcf->css_url != NULL && alcf->css_url.len > 0) {
+	if (alcf->css_url.len > 0) {
 		b->last = ngx_cpymem_ssz(b->last, "<link href=\"");
 		b->last = ngx_cpymem_ssz(b->last, alcf->css_url);
 		b->last = ngx_cpymem_ssz(b->last, "\" media=\"screen\" rel=\"stylesheet\" type=\"text/css\" />");
@@ -321,7 +321,6 @@ make_content_buf(
     ngx_int_t    size;
     ngx_str_t    path;
     ngx_str_t    readme_path;
-	ngx_str_t	 css_url;
     ngx_dir_t    dir;
     ngx_buf_t   *b;
 
@@ -493,7 +492,7 @@ make_content_buf(
 	 * If incuding a css stylesheet add the length of the URI, plus the length of
 	 * the filename and the needed markup.
 	 */
-	if (alcf->css_url != NULL && alcf->css_url.len > 0) {
+	if (alcf->css_url.len > 0) {
 		len += 2 /* CR+LF */
 			+ ngx_sizeof_ssz("<link href=\"\" media=\"screen\" rel=\"stylesheet\" type=\"text/css\" />")
 			+ alcf->css_url.len
