@@ -54,6 +54,7 @@ typedef struct {
     ngx_flag_t exact_size;   /**< Sizes are sent always in bytes. */
 
     ngx_str_t  header;       /**< File name for header, or empty if none. */
+	ngx_str_t  css_url;		 /**< URL for custom css stylesheet, or empty if none. */
     ngx_str_t  footer;       /**< File name for footer, or empty if none. */
     ngx_str_t  readme;       /**< File name for readme, or empty if none. */
 
@@ -127,15 +128,15 @@ static char *ngx_http_fancyindex_merge_loc_conf(ngx_conf_t *cf,
  * above).
  */
 static ngx_inline ngx_buf_t*
-    make_header_buf(ngx_http_request_t *r)
+    make_header_buf(ngx_http_request_t *r, ngx_http_fancyindex_loc_conf_t *alcf)
     ngx_force_inline;
 
 static ngx_inline ngx_buf_t*
-    make_header_buf(ngx_http_request_t *r)
+    make_header_buf(ngx_http_request_t *r, ngx_http_fancyindex_loc_conf_t *alcf)
     ngx_force_inline;
 
 static ngx_inline ngx_buf_t*
-    make_footer_buf(ngx_http_request_t *r)
+    make_footer_buf(ngx_http_request_t *r, ngx_http_fancyindex_loc_conf_t *alcf)
     ngx_force_inline;
 
 
@@ -159,6 +160,13 @@ static ngx_command_t  ngx_http_fancyindex_commands[] = {
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_fancyindex_loc_conf_t, enable),
+      NULL },
+
+	{ ngx_string("fancyindex_css_url"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
+      ngx_conf_set_str_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_fancyindex_loc_conf_t, css_url),
       NULL },
 
     { ngx_string("fancyindex_localtime"),
@@ -241,11 +249,12 @@ ngx_module_t  ngx_http_fancyindex_module = {
 
 
 static ngx_inline ngx_buf_t*
-make_header_buf(ngx_http_request_t *r)
+make_header_buf(ngx_http_request_t *r, ngx_http_fancyindex_loc_conf_t *alcf)
 {
     size_t blen = r->uri.len
         + ngx_sizeof_ssz(t01_head1)
         + ngx_sizeof_ssz(t02_head2)
+		+ ngx_sizeof_ssz(t08_head3)
         + ngx_sizeof_ssz(t03_body1)
         ;
     ngx_buf_t *b = ngx_create_temp_buf(r->pool, blen);
@@ -255,6 +264,19 @@ make_header_buf(ngx_http_request_t *r)
     b->last = ngx_cpymem_ssz(b->last, t01_head1);
     b->last = ngx_cpymem_str(b->last, r->uri);
     b->last = ngx_cpymem_ssz(b->last, t02_head2);
+
+	/*
+	 * If a custom CSS stylesheet is being used add it to the header!
+	 */
+	if (alcf->css_url != NULL && alcf->css_url.len > 0) {
+		b->last = ngx_cpymem_ssz(b->last, "<link href=\"");
+		b->last = ngx_cpymem_ssz(b->last, alcf->css_url);
+		b->last = ngx_cpymem_ssz(b->last, "\" media=\"screen\" rel=\"stylesheet\" type=\"text/css\" />");
+	}
+	
+	// ending head tag
+	b->last = ngx_cpymem_ssz(b->last, t08_head3);
+	
     b->last = ngx_cpymem_ssz(b->last, t03_body1);
 
 bailout:
@@ -299,6 +321,7 @@ make_content_buf(
     ngx_int_t    size;
     ngx_str_t    path;
     ngx_str_t    readme_path;
+	ngx_str_t	 css_url;
     ngx_dir_t    dir;
     ngx_buf_t   *b;
 
@@ -465,6 +488,17 @@ make_content_buf(
                     alcf->readme_flags);
         }
     }
+
+	/*
+	 * If incuding a css stylesheet add the length of the URI, plus the length of
+	 * the filename and the needed markup.
+	 */
+	if (alcf->css_url != NULL && alcf->css_url.len > 0) {
+		len += 2 /* CR+LF */
+			+ ngx_sizeof_ssz("<link href=\"\" media=\"screen\" rel=\"stylesheet\" type=\"text/css\" />")
+			+ alcf->css_url.len
+			;
+	}
 
     entry = entries.elts;
     for (i = 0; i < entries.nelts; i++) {
@@ -773,7 +807,7 @@ add_builtin_header:
         out[1].buf  = out[0].buf;
         /* Chain header buffer */
         out[0].next = &out[1];
-        out[0].buf  = make_header_buf(r);
+        out[0].buf  = make_header_buf(r, alcf);
     }
 
     /* If footer is disabled, chain up footer buffer. */

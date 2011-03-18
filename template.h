@@ -61,6 +61,8 @@ static const u_char t01_head1[] = ""
 static const u_char t02_head2[] = ""
 "</title>"
 "\n"
+;
+static const u_char t08_head3[] = ""
 "</head>"
 ;
 static const u_char t03_body1[] = ""
@@ -110,6 +112,7 @@ static const u_char t07_foot1[] = ""
 	+ nfi_sizeof_ssz(t07_foot1) \
 	+ nfi_sizeof_ssz(t01_head1) \
 	+ nfi_sizeof_ssz(t02_head2) \
+	+ nfi_sizeof_ssz(t08_head3) \
 	+ nfi_sizeof_ssz(t03_body1) \
 	+ nfi_sizeof_ssz(t04_body2) \
 	)
