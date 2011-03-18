@@ -270,7 +270,7 @@ make_header_buf(ngx_http_request_t *r, ngx_http_fancyindex_loc_conf_t *alcf)
 	 */
 	if (alcf->css_url.len > 0) {
 		b->last = ngx_cpymem_ssz(b->last, "<link href=\"");
-		b->last = ngx_cpymem_ssz(b->last, alcf->css_url);
+		b->last = ngx_cpymem_ssz(b->last, alcf->css_url.data);
 		b->last = ngx_cpymem_ssz(b->last, "\" media=\"screen\" rel=\"stylesheet\" type=\"text/css\" />");
 	}
 	
